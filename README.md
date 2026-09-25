@@ -1,5 +1,8 @@
-# jingtingyin‑player 静听音播放器
+# jingtingyin-player 静听音播放器
 单文件纯本地网页音视频播放器，**所有文件仅在浏览器本地处理，不会上传到服务器**。
+
+## 🎧 在线演示地址
+👉 [https://2cr05xkl.html2.link](https://2cr05xkl.html2.link)
 
 ## ✨ 功能
 - 单文件 HTML，开箱即用，无需后端
