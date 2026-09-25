@@ -120,7 +120,6 @@
             </button>
         </div>
 
-        <!-- 【唯一改动：删掉拖拽提示文字，换成选择文件按钮，其他所有JS、样式完全不动】 -->
         <div id="dropArea" class="glass rounded-2xl p-5 mb-6 text-center shadow-lg">
             <button id="openFileBtn" class="bg-main text-white px-7 py-2.5 rounded-xl shadow-md hover:opacity-90 transition">
                 <i class="fa fa-folder-open mr-2"></i>选择文件
@@ -190,20 +189,79 @@
         <button id="copyrightBtn" class="hover:text-main transition">版权声明</button>
     </div>
 
-    <!-- 隐私协议弹窗 -->
+    <!-- 隐私协议弹窗，仓库链接已修正 -->
     <div id="privacyPopup" class="popup-wrap fixed inset-0 mask hidden items-center justify-center p-4">
         <div class="glass rounded-2xl max-w-lg w-full max-h-[80vh] overflow-auto p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold">隐私协议</h3>
+                <h3 class="text-xl font-bold">隐私与免责声明</h3>
                 <button class="privacy-close text-xl"><i class="fa fa-times"></i></button>
             </div>
             <div class="text-slate-700 space-y-3 text-sm">
-                <p>1. 静听音是一款纯网页本地播放器。</p>
-                <p>2. 您选取的音频、视频文件全程仅在浏览器本地处理，<strong>不会上传至任何服务器</strong>。</p>
-                <p>3. 本程序不会收集设备信息、播放记录、文件内容等任何用户数据。</p>
-                <p>4. 解析MP3歌曲标签操作完全在本地浏览器内完成，不会向外发送文件。</p>
-                <p>5. 不会植入广告、后台联网、读取其他文件夹内文件。</p>
-                <p>6. 仅使用浏览器标准能力实现播放功能。</p>
+                <p>欢迎光临静听音网页播放器！在您打开本单文件网页播放器之前，请务必通读以下全部条款。只要你的浏览器加载好了本页面，即代表你完全认可下面所有约定。</p>
+
+                <p><strong>1、我们收集哪些资料</strong><br>
+                首先放一百个心：不会上传你的音频、视频文件到任何服务器——因为我们压根就没有服务器。
+                所有解码、歌曲标签读取工作，全部老老实实跑在你自己手机、电脑浏览器里面。
+                <br><br>
+                我们仅会保存你本地的播放器设置，存在浏览器储存空间内：倍速、音量、界面布局。
+                <br>
+                本程序不会偷偷翻看你文件夹里的录音。但请注意，软件没办法保证你播放的歌好不好听，难听是你自己品味的问题，不要来找开发者投诉。
+                <br><br>
+                MP3的歌曲名字、歌手信息只会临时读取显示，播放完毕关掉网页，内存直接清空，不会存档。
+                </p>
+
+                <p><strong>2、数据拿来干什么</strong><br>
+                只会用来实现播放功能，仅此而已。
+                <br><br>
+                我们不会拿你的歌单拿去做AI训练、不会拿去卖给广告商。使用本播放器听歌，不会增加、降低你患上耳鸣、失眠、乳腺问题或者其他任何病症的概率。播放器不对听歌听上头熬夜造成的一切健康后果负责。
+                </p>
+
+                <p><strong>3、数据安全</strong><br>
+                源代码全部开源，你随时下载HTML完整源码自行检查。没有隐藏上报、没有后台探针。
+                <br><br>
+                很遗憾，本人没办法保证你的浏览器本身没有bug。如果浏览器突然闪退、页面崩掉歌没了，不要怪播放器，浏览器发疯这件事，我们管不着。
+                <br>
+                千万不要把重要音频唯一备份只依靠网页内存播放。本工具只是播放器，不提供数据保险服务，丢了文件我们概不赔偿。
+                </p>
+
+                <p><strong>4、第三方组件说明</strong><br>
+                页面加载CDN的样式、图标资源。
+                <br><br>
+                CDN服务器那边干了什么事情不归我们管辖。要是你极度缺乏安全感，下载离线版HTML，拔掉网线再打开，全世界就只剩下你和播放器，没有人可以偷窥你。
+                </p>
+
+                <p><strong>5、禁止事项</strong><br>
+                你可以自由二次修改源码，随便折腾。但是请勿拿本播放器用于播放违法违规音视频内容。
+                <br><br>
+                如果你播放违禁内容被找上门，锅请你自己扛，不要把开发者供出来。开发者仅仅只是写了一个播放工具，无权审查你要打开什么文件。就好比咯咯铃炸鸡店只管卖鸡肉，可管不住顾客拿炸鸡去砸路人。
+                </p>
+
+                <p><strong>6、用户自身需要明白的风险</strong><br>
+                本项目属于业余爱好者随手捣鼓出来的开源作品，没有任何商业质保承诺。
+                <br><br>
+                使用本网页播放器播放音频，我们不作以下保证：
+                <br>• 不能保证播放音乐一定可以治愈你的坏心情
+                <br>• 不能保证听歌不会被家人嫌弃音量太大
+                <br>• 不能保证所有奇葩编码的MP3全都能完美解码
+                <br>• 不承诺长期更新，随时可能摆烂停止开发
+                <br>如果你期待一个十全十美的商用播放器，建议出门左转去找VLC。
+                </p>
+
+                <p><strong>7、隐私政策修改权利</strong><br>
+                哪天我心血来潮，随时可以修改这份搞笑声明。更新版本会同步丢到GitHub仓库，没事可以过来逛逛。
+                </p>
+
+                <p><strong>8、联络渠道</strong><br>
+                有bug、新想法，可以前往开源平台提交Issue反馈。
+                <br>
+                📦开源仓库：<a href="https://github.com/hsshhahs/jingtingyin-player" target="_blank" class="text-main underline">https://github.com/hsshhahs/jingtingyin-player</a>
+                <br>
+                🎬B站演示视频：<a href="https://b23.tv/nMba7tL" target="_blank" class="text-main underline">https://b23.tv/nMba7tL</a>
+                <br>
+                别半夜三点疯狂发消息催更新，开发者也要睡觉。
+                </p>
+
+                <p class="pt-2 text-center italic">静听音播放器｜音乐再烂，至少文件留在你自己手上！</p>
             </div>
         </div>
     </div>
