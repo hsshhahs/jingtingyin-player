@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>静听音｜本地音视频播放器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/js-id3@0.2.0/dist/js-id3.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        main:'#2563eb'
+                    },
+                    fontFamily: {
+                        sans: ['Inter','sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass {
+                background: rgba(255,255,255,0.65);
+                backdrop-filter: blur(18px);
+                border:1px solid rgba(255,255,255,0.9);
+            }
+            .card-hover{
+                transition: all 0.24s ease;
+            }
+            .card-hover:hover{
+                transform: translateY(-4px);
+                box-shadow: 0 12px 24px rgba(37,99,235,0.18);
+            }
+            .progress-thumb::-webkit-slider-thumb{
+                -webkit-appearance:none;
+                width:14px;height:14px;
+                border-radius:99px;
+                background:#2563eb;
+                cursor:pointer;
+                box-shadow:0 0 8px #3b82f6;
+            }
+            .spin{
+                animation: spin 1.2s linear infinite;
+            }
+            @keyframes spin {
+                from{transform:rotate(0deg)}
+                to{transform:rotate(360deg)}
+            }
+            .mask{
+                background:rgba(0,0,0,0.55);
+            }
+        }
+        body {
+            background: radial-gradient(circle at top,#dbeafe,#eff6ff 70%);
+            min-height:100vh;
+        }
+        video::-webkit-media-controls {display:none !important;}
+        .drop-hover{
+            background:rgba(37, 99, 235,0.15) !important;
+            border:2px dashed #2563eb !important;
+        }
+        #mp3InfoBar{
+            position:absolute;
+            top:0;
+            left:0;
+            right:0;
+            background:rgba(0,0,0,0.55);
+            color:#fff;
+            padding:10px 16px;
+            font-size:15px;
+            z-index:20;
+            pointer-events:none;
+            display:none;
+        }
+        .page-hide{
+            display: none !important;
+        }
+        .popup-wrap{
+            z-index:99;
+        }
+    </style>
+</head>
+<body class="text-slate-800 font-sans p-4 md:p-8">
+<div class="max-w-4xl mx-auto">
+    <!-- 标题栏 -->
+    <div class="text-center mb-10">
+        <h1 class="text-[clamp(1.8rem,4vw,2.8rem)] font-bold bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">
+            <i class="fa fa-music mr-2"></i>静听音
+        </h1>
+        <p class="text-slate-500 mt-2">纯本地音视频播放器 · 文件不会上传网络</p>
+    </div>
+
+    <!-- 首页选择界面 -->
+    <div id="homePage" class="grid md:grid-cols-2 gap-6 mb-8">
+        <div id="openMp3Card" class="glass rounded-2xl p-8 text-center shadow-lg card-hover cursor-pointer">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                <i class="fa fa-music text-3xl text-main"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">播放 MP3 音频</h3>
+            <p class="text-slate-500 text-sm">自动读取歌曲ID3标签，音乐模式</p>
+        </div>
+        <div id="openMp4Card" class="glass rounded-2xl p-8 text-center shadow-lg card-hover cursor-pointer">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-sky-100 flex items-center justify-center">
+                <i class="fa fa-film text-3xl text-sky-500"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-2">播放 MP4 视频</h3>
+            <p class="text-slate-500 text-sm">倍速播放、全屏、进度拖拽</p>
+        </div>
+    </div>
+
+    <!-- 播放器界面 -->
+    <div id="playerPage" class="page-hide">
+        <div class="mb-4">
+            <button id="backHomeBtn" class="px-4 py-2 rounded-lg bg-white/70 hover:bg-white transition shadow">
+                <i class="fa fa-arrow-left mr-1"></i>返回首页
+            </button>
+        </div>
+
+        <!-- 【唯一改动：删掉拖拽提示文字，换成选择文件按钮，其他所有JS、样式完全不动】 -->
+        <div id="dropArea" class="glass rounded-2xl p-5 mb-6 text-center shadow-lg">
+            <button id="openFileBtn" class="bg-main text-white px-7 py-2.5 rounded-xl shadow-md hover:opacity-90 transition">
+                <i class="fa fa-folder-open mr-2"></i>选择文件
+            </button>
+            <input id="fileInput" type="file" accept="*" style="display:none;">
+        </div>
+
+        <div class="glass rounded-3xl overflow-hidden relative shadow-xl shadow-blue-200/60">
+            <div id="videoWrap" class="bg-slate-900 aspect-video flex items-center justify-center relative">
+                <video id="mediaPlayer" class="max-w-full max-h-full w-full h-full object-contain"></video>
+                <div id="mp3InfoBar"></div>
+                <div id="emptyTip" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                    <i class="fa fa-file-video-o text-6xl mb-4 opacity-40"></i>
+                    <p>请选择媒体档案</p>
+                </div>
+                <div id="loadingTip" class="absolute inset-0 flex flex-col items-center justify-center text-white hidden bg-black/40">
+                    <i class="fa fa-circle-o-notch text-5xl spin mb-3"></i>
+                    <p>正在加载媒体文件…</p>
+                </div>
+            </div>
+
+            <div class="p-4 bg-gradient-to-t from-black/60 to-transparent text-white">
+                <div class="mb-3">
+                    <input type="range" id="progressBar" min="0" max="100" value="0"
+                           class="w-full h-2 bg-white/25 rounded-lg progress-thumb appearance-none">
+                    <div class="flex justify-between text-xs text-slate-200 mt-1">
+                        <span id="curTime">00:00</span>
+                        <span id="totalTime">00:00</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex gap-2 items-center">
+                        <button id="playBtn" class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center hover:text-sky-300 transition">
+                            <i class="fa fa-play text-lg"></i>
+                        </button>
+                        <button id="stopBtn" class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center hover:text-sky-300 transition">
+                            <i class="fa fa-stop"></i>
+                        </button>
+                        <div class="flex items-center gap-2 ml-2">
+                            <i class="fa fa-volume-up"></i>
+                            <input id="volSlider" type="range" min="0" max="100" value="80" class="w-20 h-1.5 appearance-none bg-white/25 rounded">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <select id="speedSel" class="bg-white/20 px-2 py-1.5 rounded-lg outline-none">
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                        </select>
+                        <button id="musicModeBtn" class="px-3 py-1.5 rounded-lg bg-white/20 text-sm hover:text-sky-300">
+                            <i class="fa fa-music mr-1"></i>音乐模式
+                        </button>
+                        <button id="fullBtn" class="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center hover:text-sky-300">
+                            <i class="fa fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部按钮：隐私协议、版权声明 -->
+    <div class="mt-10 flex justify-center gap-6 text-sm text-slate-500">
+        <button id="privacyBtn" class="hover:text-main transition">隐私协议</button>
+        <button id="copyrightBtn" class="hover:text-main transition">版权声明</button>
+    </div>
+
+    <!-- 隐私协议弹窗 -->
+    <div id="privacyPopup" class="popup-wrap fixed inset-0 mask hidden items-center justify-center p-4">
+        <div class="glass rounded-2xl max-w-lg w-full max-h-[80vh] overflow-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">隐私协议</h3>
+                <button class="privacy-close text-xl"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="text-slate-700 space-y-3 text-sm">
+                <p>1. 静听音是一款纯网页本地播放器。</p>
+                <p>2. 您选取的音频、视频文件全程仅在浏览器本地处理，<strong>不会上传至任何服务器</strong>。</p>
+                <p>3. 本程序不会收集设备信息、播放记录、文件内容等任何用户数据。</p>
+                <p>4. 解析MP3歌曲标签操作完全在本地浏览器内完成，不会向外发送文件。</p>
+                <p>5. 不会植入广告、后台联网、读取其他文件夹内文件。</p>
+                <p>6. 仅使用浏览器标准能力实现播放功能。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 版权声明弹窗 -->
+    <div id="copyrightPopup" class="popup-wrap fixed inset-0 mask hidden items-center justify-center p-4">
+        <div class="glass rounded-2xl max-w-lg w-full max-h-[80vh] overflow-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">版权声明</h3>
+                <button class="copyright-close text-xl"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="text-slate-700 space-y-3 text-sm">
+                <p>1. 静听音仅为媒体播放工具软件，<strong>不提供任何音视频资源下载、分发服务</strong>。</p>
+                <p>2. 用户播放的音视频文件版权归原著作权人所有。</p>
+                <p>3. 用户应当仅播放自身拥有合法使用权的媒体文件。</p>
+                <p>4. 严禁利用本工具播放盗版、侵权、违法违规影音内容，相关责任由使用者自行承担。</p>
+                <p>5. 播放器源代码仅供个人学习使用，禁止商用倒卖。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const homePage = document.getElementById('homePage');
+    const playerPage = document.getElementById('playerPage');
+    const openMp3Card = document.getElementById('openMp3Card');
+    const openMp4Card = document.getElementById('openMp4Card');
+    const backHomeBtn = document.getElementById('backHomeBtn');
+
+    const openFileBtn = document.getElementById('openFileBtn');
+    const fileInput = document.getElementById('fileInput');
+    const player = document.getElementById('mediaPlayer');
+    const emptyTip = document.getElementById('emptyTip');
+    const loadingTip = document.getElementById('loadingTip');
+    const dropArea = document.getElementById('dropArea');
+    const mp3InfoBar = document.getElementById("mp3InfoBar");
+
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const progressBar = document.getElementById('progressBar');
+    const curTimeDom = document.getElementById('curTime');
+    const totalTimeDom = document.getElementById('totalTime');
+    const volSlider = document.getElementById('volSlider');
+    const speedSel = document.getElementById('speedSel');
+    const musicModeBtn = document.getElementById('musicModeBtn');
+    const fullBtn = document.getElementById('fullBtn');
+
+    //弹窗
+    const privacyBtn = document.getElementById('privacyBtn');
+    const copyrightBtn = document.getElementById('copyrightBtn');
+    const privacyPopup = document.getElementById('privacyPopup');
+    const copyrightPopup = document.getElementById('copyrightPopup');
+
+    //保存旧blob，用完释放，内存不会堆积
+    let oldBlobUrl = null;
+
+    //页面切换
+    function goPlayer(){
+        homePage.classList.add('page-hide');
+        playerPage.classList.remove('page-hide');
+    }
+    function goHome(){
+        homePage.classList.remove('page-hide');
+        playerPage.classList.add('page-hide');
+    }
+    openMp3Card.onclick = ()=>{
+        fileInput.accept = "audio/*";
+        fileInput.click();
+        goPlayer();
+    }
+    openMp4Card.onclick = ()=>{
+        fileInput.accept = "video/*";
+        fileInput.click();
+        goPlayer();
+    }
+    backHomeBtn.onclick = goHome;
+
+    //弹窗逻辑
+    privacyBtn.onclick = ()=>{
+        privacyPopup.classList.remove('hidden');
+        privacyPopup.classList.add('flex');
+    }
+    copyrightBtn.onclick = ()=>{
+        copyrightPopup.classList.remove('hidden');
+        copyrightPopup.classList.add('flex');
+    }
+    document.querySelector('.privacy-close').onclick = ()=>{
+        privacyPopup.classList.add('hidden');
+        privacyPopup.classList.remove('flex');
+    }
+    document.querySelector('.copyright-close').onclick = ()=>{
+        copyrightPopup.classList.add('hidden');
+        copyrightPopup.classList.remove('flex');
+    }
+
+    //【MP3标签解析函数】
+    async function parseMp3Info(file){
+        if(!mp3InfoBar) return;
+        if(!file.name.toLowerCase().endsWith(".mp3")){
+            mp3InfoBar.style.display = "none";
+            return;
+        }
+        try{
+            const meta = await jsId3.loadFile(file);
+            const title = meta.title || file.name;
+            const artist = meta.artist || "未知歌手";
+            const album = meta.album || "未知专辑";
+            mp3InfoBar.innerHTML = `🎵 ${title}<br>👤 ${artist}｜💿 ${album}`;
+        }catch{
+            mp3InfoBar.innerHTML = `🎵 ${file.name}`;
+        }
+        mp3InfoBar.style.display = "block";
+    }
+
+    openFileBtn.onclick = function(){
+        fileInput.click();
+    }
+
+    fileInput.addEventListener('change',handleFileSelect);
+
+    function handleFileSelect(e){
+        const files = e.target.files;
+        if(!files || files.length===0) return;
+        openMediaFile(files[0]);
+        fileInput.value = '';
+    }
+
+    async function openMediaFile(file){
+        if(!file) return;
+        if(oldBlobUrl){
+            URL.revokeObjectURL(oldBlobUrl);
+            oldBlobUrl = null;
+        }
+        player.pause();
+        loadingTip.classList.remove('hidden');
+        emptyTip.style.display='none';
+
+        const url = URL.createObjectURL(file);
+        oldBlobUrl = url;
+        player.src = url;
+
+        await parseMp3Info(file);
+
+        const readyPlay = ()=>{
+            loadingTip.classList.add('hidden');
+            player.play().catch(err=>{
+                console.log("自动播放拦截，需要手动点播放",err);
+            })
+            player.removeEventListener('canplay',readyPlay);
+        }
+        player.addEventListener('canplay',readyPlay);
+    }
+
+    //拖拽代码原样保留，只是界面看不见拖拽提示，拖拽功能还能用
+    ['dragenter','dragover','dragleave','drop'].forEach(n=>dropArea.addEventListener(n,ev=>ev.preventDefault()));
+    dropArea.addEventListener('dragenter',()=>dropArea.classList.add('drop-hover'));
+    dropArea.addEventListener('dragover',()=>dropArea.classList.add('drop-hover'));
+    dropArea.addEventListener('dragleave',()=>dropArea.classList.remove('drop-hover'));
+    dropArea.addEventListener('drop',ev=>{
+        dropArea.classList.remove('drop-hover');
+        openMediaFile(ev.dataTransfer.files[0]);
+    })
+
+    function fmtTime(s){
+        let m = Math.floor(s/60);
+        let sec = Math.floor(s%60);
+        return String(m).padStart(2,'0')+":"+String(sec).padStart(2,'0');
+    }
+
+    playBtn.onclick = ()=> player.paused ? player.play() : player.pause();
+    player.addEventListener('play',()=>playBtn.innerHTML=`<i class="fa fa-pause text-lg"></i>`);
+    player.addEventListener('pause',()=>playBtn.innerHTML=`<i class="fa fa-play text-lg"></i>`);
+
+    stopBtn.onclick = ()=>{
+        player.pause();
+        player.currentTime=0;
+    };
+    player.addEventListener('timeupdate',()=>{
+        let pct = player.duration ? (player.currentTime/player.duration)*100 : 0;
+        progressBar.value = pct;
+        curTimeDom.innerText = fmtTime(player.currentTime);
+    })
+    player.addEventListener('loadedmetadata',()=>{
+        totalTimeDom.innerText = fmtTime(player.duration);
+    })
+    progressBar.oninput = ()=>{
+        if(player.duration) player.currentTime = progressBar.value /100 * player.duration;
+    }
+    volSlider.oninput = ()=> player.volume = volSlider.value / 100;
+    speedSel.onchange = ()=> player.playbackRate = Number(speedSel.value);
+    fullBtn.onclick = ()=> player.requestFullscreen?.();
+
+    let musicMode = false;
+    musicModeBtn.onclick = ()=>{
+        musicMode = !musicMode;
+        player.style.opacity = musicMode ? "0" : "1";
+        musicModeBtn.classList.toggle('text-sky-300',musicMode);
+    }
+
+    document.addEventListener('keydown',ev=>{
+        if(ev.code==='Space'){
+            ev.preventDefault();
+            player.paused?player.play():player.pause();
+        }
+    })
+</script>
+</body>
+</html>
